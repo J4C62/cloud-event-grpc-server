@@ -1,0 +1,80 @@
+plugins {
+    // Aplica el plugin de Spring Boot para trabajar con aplicaciones Spring
+    id 'application'
+    id 'org.springframework.boot' version '3.4.4'
+    id 'io.spring.dependency-management' version '1.0.11.RELEASE'
+    id 'com.google.protobuf' version '0.9.5'
+}
+
+group = 'com.github.j4c62'
+version = '0.0.1'
+ext {
+    springCloudVersion = '4.2.2'
+}
+repositories {
+    // Usar Maven Central para resolver dependencias
+    mavenCentral()
+
+    // Repositorio privado de GitHub si estás usando librerías desde allí
+    maven {
+        url = uri("https://maven.pkg.github.com/j4c62/cloud-event-broadcaster")
+        credentials {
+            username = project.findProperty("github.username") ?: System.getenv("USERNAME")
+            password = project.findProperty("github.token") ?: System.getenv("TOKEN")
+        }
+    }
+}
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'net.devh:grpc-server-spring-boot-starter:3.1.0.RELEASE'
+    runtimeOnly 'io.grpc:grpc-netty-shaded:1.71.0'
+    implementation 'io.grpc:grpc-protobuf:1.71.0'
+    implementation 'io.grpc:grpc-stub:1.71.0'
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(23)
+    }
+}
+dependencyManagement {
+    imports {
+        mavenBom 'org.springframework.cloud:spring-cloud-dependencies:2024.0.1'
+    }
+}
+application {
+    mainClass = 'com.github.j4c62.SpringBootCloudEventBroadcasterApp'
+}
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.25.1"
+    }
+    plugins {
+        grpc {
+            artifact = 'io.grpc:protoc-gen-grpc-java:1.71.0'
+        }
+    }
+    generateProtoTasks {
+        all()*.plugins {
+            grpc {
+                option '@generated=omit'
+            }
+        }
+    }
+}
+sourceSets {
+    main {
+        java {
+            srcDirs 'build/generated/source/proto/main/grpc'
+            srcDirs 'build/generated/source/proto/main/java'
+        }
+    }
+}
+tasks.named('test') {
+    // Usa JUnit Platform para ejecutar pruebas unitarias
+    useJUnitPlatform()
+}
